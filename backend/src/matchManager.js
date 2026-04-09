@@ -14,9 +14,10 @@ const {
 } = require('./security');
 
 const MATCHMAKING_DELAY_MS = parseInt(process.env.MATCHMAKING_DELAY_MS || '3000', 10);
-const MSG_RATE_LIMIT        = 10;   // msgs/s per connection
-const HEARTBEAT_INTERVAL    = 30_000;
-const HEARTBEAT_TIMEOUT     = 60_000;
+// Rate/heartbeat limits are validated in config.js and mirrored into process.env (syncLegacyEnv()).
+const MSG_RATE_LIMIT = parseInt(process.env.MSG_RATE_LIMIT || '10', 10); // msgs/s per connection
+const HEARTBEAT_INTERVAL = parseInt(process.env.HEARTBEAT_INTERVAL || '30000', 10);
+const HEARTBEAT_TIMEOUT = parseInt(process.env.HEARTBEAT_TIMEOUT || '60000', 10);
 
 // ── in-memory stores ─────────────────────────────────────────
 
@@ -47,12 +48,15 @@ const gamePhases  = ['lobby', 'matchmaking', 'playing', 'gameover'];
 
 const joiOpts = { stripUnknown: true, abortEarly: false };
 
-/** Mock + hex-style wallet strings only — no control chars / prototype keys */
+/**
+ * Wallet identifier.
+ * Default: EVM-style `0x` + 40 hex to avoid accepting arbitrary strings that can poison logs/leaderboards.
+ * If you truly need non-EVM mocks, relax this deliberately (do not accept free-form).
+ */
 const walletAddress = Joi.string()
   .trim()
-  .min(1)
-  .max(128)
-  .pattern(/^[a-fA-F0-9xX]+$/)
+  .lowercase()
+  .pattern(/^0x[a-f0-9]{40}$/)
   .required();
 
 const schemas = {

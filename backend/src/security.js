@@ -24,6 +24,26 @@ const _ipMsgBuckets = new Map();
 const _invalidByIp = new Map();
 
 /**
+ * UNHACKABLE: Prevent unbounded Map growth (memory DoS) from unique-IP spam.
+ * These maps only need to cover short windows; prune opportunistically.
+ */
+function pruneMaps() {
+  const now = Date.now();
+  // Buckets expire at resetAt.
+  for (const [ip, b] of _ipMsgBuckets) {
+    if (!b || now > b.resetAt + 5_000) _ipMsgBuckets.delete(ip);
+  }
+  // Invalid counters expire at resetAt.
+  for (const [ip, g] of _invalidByIp) {
+    if (!g || now > g.resetAt + 5_000) _invalidByIp.delete(ip);
+  }
+  // Connection counts should be accurate, but if something goes wrong don't keep dead keys forever.
+  for (const [ip, n] of _wsConnByIp) {
+    if (!n || n <= 0) _wsConnByIp.delete(ip);
+  }
+}
+
+/**
  * UNHACKABLE: Only honor X-Forwarded-For when TRUST_PROXY=true (verified reverse proxy).
  * Prevents client-spoofed “client IP” bypassing limits in naive deployments.
  */
@@ -44,12 +64,14 @@ function canAcceptWs(ip) {
 
 function noteWsOpen(ip) {
   _wsConnByIp.set(ip, (_wsConnByIp.get(ip) || 0) + 1);
+  if ((_wsConnByIp.size + _ipMsgBuckets.size + _invalidByIp.size) > 50_000) pruneMaps();
 }
 
 function noteWsClose(ip) {
   const n = (_wsConnByIp.get(ip) || 1) - 1;
   if (n <= 0) _wsConnByIp.delete(ip);
   else _wsConnByIp.set(ip, n);
+  pruneMaps();
 }
 
 /**
@@ -63,6 +85,7 @@ function ipMessageRateOk(ip) {
     _ipMsgBuckets.set(ip, b);
   }
   b.n += 1;
+  if (_ipMsgBuckets.size > 50_000) pruneMaps();
   return b.n <= MAX_MSG_PER_IP_PER_SEC;
 }
 
@@ -82,6 +105,7 @@ function recordInvalidAndShouldDrop(meta, ip) {
   if (!g || now > g.resetAt) g = { n: 0, resetAt: now + 60_000 };
   g.n += 1;
   _invalidByIp.set(ip, g);
+  if (_invalidByIp.size > 50_000) pruneMaps();
   return g.n > MAX_INVALID_PER_MIN * 3;
 }
 
@@ -109,4 +133,5 @@ module.exports = {
   MAX_WS_PAYLOAD_BYTES,
   recordInvalidAndShouldDrop,
   castEchoRateOk,
+  pruneMaps,
 };

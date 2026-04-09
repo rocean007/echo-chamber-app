@@ -20,7 +20,7 @@ export default defineConfig(({ mode }) => {
       cssCodeSplit: true,
       modulePreload: {
         resolveDependencies: (_filename, deps) =>
-          deps.filter(d => !d.includes('/three-')),
+          deps.filter(d => !d.includes('three-')),
       },
       rollupOptions: {
         output: {
