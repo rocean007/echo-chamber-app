@@ -13,6 +13,7 @@ const { logger, httpLogger } = require('./logger');
 const { handleConnection, startHeartbeat } = require('./matchManager');
 const { router: leaderboardRouter } = require('./leaderboard');
 const healthRouter = require('./routes/health');
+const { router: authRouter } = require('./routes/auth');
 const {
   trustedClientIp,
   canAcceptWs,
@@ -69,6 +70,7 @@ const apiLimiter = rateLimit({
 app.use('/api', apiLimiter);
 
 app.use('/api/health', healthRouter);
+app.use('/api/auth', authRouter);
 app.use('/api/leaderboard', leaderboardRouter);
 
 app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
