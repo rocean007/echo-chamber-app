@@ -6,6 +6,7 @@ const Joi = require('joi');
 const { createMatch, castEcho } = require('./gameEngine');
 const { recordWin, getLeaderboard } = require('./leaderboard');
 const { logger } = require('./logger');
+const { verifyToken } = require('./routes/auth');
 const {
   ipMessageRateOk,
   MAX_WS_PAYLOAD_BYTES,
@@ -62,7 +63,7 @@ const walletAddress = Joi.string()
 const schemas = {
   CONNECT_WALLET: Joi.object({
     type: Joi.string().valid('CONNECT_WALLET').required(),
-    walletAddress,
+    token: Joi.string().min(10).max(2000).required(),
   }).unknown(false),
   DISCONNECT_WALLET: Joi.object({
     type: Joi.string().valid('DISCONNECT_WALLET').required(),
@@ -181,9 +182,19 @@ function handleMessage(meta, msg) {
 
     // ── wallet ───────────────────────────────────────────────
     case 'CONNECT_WALLET':
-      meta.walletAddress = msg.walletAddress;
-      logger.info({ wallet: msg.walletAddress }, 'wallet connected');
-      send(ws, { type: 'WALLET_CONNECTED', walletAddress: msg.walletAddress });
+      // UNHACKABLE: Wallet identity must be proven by signature (token) — prevents address spoofing.
+      if (process.env.NODE_ENV !== 'production' && process.env.AUTH_SECRET === 'dev-unsafe-auth-secret-change-me') {
+        sendError(ws, 'Auth misconfigured: set AUTH_SECRET')
+        break
+      }
+      const v = verifyToken(msg.token)
+      if (!v.ok) {
+        sendError(ws, v.error || 'Invalid auth token')
+        break
+      }
+      meta.walletAddress = v.address
+      logger.info({ wallet: meta.walletAddress }, 'wallet connected');
+      send(ws, { type: 'WALLET_CONNECTED', walletAddress: meta.walletAddress });
       break;
 
     case 'DISCONNECT_WALLET':
