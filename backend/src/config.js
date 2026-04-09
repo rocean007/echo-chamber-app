@@ -22,6 +22,9 @@ const envSchema = Joi.object({
     process.env.NODE_ENV === 'production' ? 'info' : 'debug',
   ),
   TRUST_PROXY: Joi.string().valid('true', 'false').default('false'),
+  AUTH_SECRET: Joi.string().min(16).default('dev-unsafe-auth-secret-change-me'),
+  AUTH_TOKEN_TTL_S: Joi.number().integer().min(30).max(24 * 60 * 60).default(10 * 60),
+  AUTH_NONCE_TTL_S: Joi.number().integer().min(30).max(24 * 60 * 60).default(10 * 60),
 
   AGENT_COUNT: Joi.number().integer().min(1).max(64).default(12),
   BOT_DELAY_MS: Joi.number().integer().min(0).max(60_000).default(1500),
@@ -64,6 +67,10 @@ if (parsed.NODE_ENV === 'production') {
   }
   if (!trustProxy) {
     console.warn('[config] WARNING: TRUST_PROXY is false in production — enable behind a reverse proxy with X-Forwarded-For.');
+  }
+  if (parsed.AUTH_SECRET === 'dev-unsafe-auth-secret-change-me') {
+    console.error('[config] FATAL: AUTH_SECRET must be set in production.');
+    process.exit(1);
   }
 }
 
@@ -108,6 +115,9 @@ function syncLegacyEnv() {
     HEARTBEAT_INTERVAL: config.HEARTBEAT_INTERVAL,
     HEARTBEAT_TIMEOUT: config.HEARTBEAT_TIMEOUT,
     TRUST_PROXY: config.trustProxy ? 'true' : 'false',
+    AUTH_SECRET: config.AUTH_SECRET,
+    AUTH_TOKEN_TTL_S: config.AUTH_TOKEN_TTL_S,
+    AUTH_NONCE_TTL_S: config.AUTH_NONCE_TTL_S,
   };
   for (const [k, v] of Object.entries(map)) {
     process.env[k] = String(v);
