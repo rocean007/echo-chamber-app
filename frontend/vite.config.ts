@@ -18,6 +18,10 @@ export default defineConfig(({ mode }) => {
     build: {
       target: 'es2020',
       cssCodeSplit: true,
+      modulePreload: {
+        resolveDependencies: (_filename, deps) =>
+          deps.filter(d => !d.includes('/three-')),
+      },
       rollupOptions: {
         output: {
           manualChunks(id) {
@@ -28,7 +32,7 @@ export default defineConfig(({ mode }) => {
           },
         },
       },
-      chunkSizeWarningLimit: 700,
+      chunkSizeWarningLimit: 950,
     },
     server: {
       headers: {

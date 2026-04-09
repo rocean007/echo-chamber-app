@@ -11,6 +11,10 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#1a1a1a" />
+    <style>
+      :root { color-scheme: dark; --background: #1A1A1A; --text: #FFF8E7; --primary: #D32F2F; --accent-2: #FFC107; }
+      html, body, #root { width: 100%; height: 100%; margin: 0; overflow: hidden; background: var(--background); color: var(--text); font-family: system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+    </style>
     <title>Echo Chamber | Free 1v1 Browser Strategy Game — The Last Protocol</title>
     <meta
       name="description"
@@ -62,12 +66,16 @@
       }
     </script>
 
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' http://127.0.0.1:3001 http://localhost:3001 ws://127.0.0.1:3001 ws://localhost:3001 wss: https:; worker-src blob:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' http://127.0.0.1:3001 http://localhost:3001 ws://127.0.0.1:3001 ws://localhost:3001 wss: https:; worker-src 'self' blob:;">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
-    <script type="module" crossorigin src="/assets/index-1rsDrBTq.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-aaUAORz8.css">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap"></noscript>
+    <script type="module" crossorigin src="/assets/index-DE2hqR_V.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/react-vendor-B2jexFad.js">
+    <link rel="modulepreload" crossorigin href="/assets/three-DOywjbX_.js">
+    <link rel="modulepreload" crossorigin href="/assets/motion-Czg_9hqj.js">
+    <link rel="stylesheet" crossorigin href="/assets/index-D67Dmz8-.css">
   </head>
   <body>
     <noscript>
