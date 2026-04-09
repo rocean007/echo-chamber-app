@@ -1,0 +1,145 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  --primary: #D32F2F;
+  --secondary: #8B0000;
+  --accent-1: #FF5722;
+  --accent-2: #FFC107;
+  --background: #1A1A1A;
+  --text: #FFF8E7;
+  /* Readable hierarchy on dark bg — use instead of ultra-faint rgba(...) */
+  --text-secondary: #E8DFD0;
+  --text-muted: #B5AFA6;
+  --text-hint: #8C8780;
+  /* On tinted / glass panels — ensures WCAG-friendly body text */
+  --panel-ink: #F5EFE4;
+  --error: #A63A2E;
+  --success: #2E7D32;
+  --agent-neutral: #9E9E9E;
+  --agent-player1: #D32F2F;
+  --agent-player2: #FF5722;
+  --world-cinder: #424242;
+  --world-magma: #FFC107;
+
+  --font-display: 'Cinzel Decorative', serif;
+  --font-body: 'Rajdhani', sans-serif;
+  --font-mono: 'Share Tech Mono', monospace;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--background);
+  color: var(--text);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Keyboard / accessibility — visible focus without fighting custom buttons */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 2px;
+}
+
+/* Scrollbars */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: #111; }
+::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 2px; }
+
+/* Glow utilities */
+.glow-red { text-shadow: 0 0 20px var(--primary), 0 0 40px var(--primary); }
+.glow-gold { text-shadow: 0 0 20px var(--accent-2), 0 0 40px var(--accent-2); }
+.box-glow-red { box-shadow: 0 0 15px var(--primary), inset 0 0 15px rgba(211,47,47,0.1); }
+.box-glow-gold { box-shadow: 0 0 15px var(--accent-2), inset 0 0 15px rgba(255,193,7,0.1); }
+
+/* Scanline overlay */
+.scanlines::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  /* Lighter stripes so copy stays crisp on modals */
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.028) 2px,
+    rgba(0,0,0,0.028) 4px
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Panel glass effect */
+.glass-panel {
+  background: rgba(22,22,22,0.94);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(211,47,47,0.3);
+  color: var(--panel-ink);
+}
+
+/* Symbol styles */
+.symbol-glyph {
+  font-family: var(--font-mono);
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+/* Noise texture */
+.noise {
+  position: relative;
+}
+.noise::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.4;
+}
+
+/* Pulse animation */
+@keyframes pulse-red {
+  0%, 100% { box-shadow: 0 0 8px var(--primary); }
+  50% { box-shadow: 0 0 24px var(--primary), 0 0 48px rgba(211,47,47,0.4); }
+}
+@keyframes pulse-gold {
+  0%, 100% { box-shadow: 0 0 8px var(--accent-2); }
+  50% { box-shadow: 0 0 24px var(--accent-2), 0 0 48px rgba(255,193,7,0.4); }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  92% { opacity: 1; }
+  93% { opacity: 0.6; }
+  94% { opacity: 1; }
+  96% { opacity: 0.8; }
+  97% { opacity: 1; }
+}
+
+.animate-pulse-red { animation: pulse-red 2s ease-in-out infinite; }
+.animate-pulse-gold { animation: pulse-gold 2s ease-in-out infinite; }
+.animate-float { animation: float 3s ease-in-out infinite; }
+.animate-spin-slow { animation: spin-slow 8s linear infinite; }
+.animate-flicker { animation: flicker 4s linear infinite; }

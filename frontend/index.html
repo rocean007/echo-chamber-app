@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <script>
+      /* Consent: reduce banner flash for returning users before React mounts */
+      try {
+        if (localStorage.getItem('echo-consent-v1')) document.documentElement.classList.add('echo-consent-known');
+      } catch (e) {}
+    </script>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#1a1a1a" />
+
+    <!-- Primary SEO: keyword-first title, 1 unique description (≈155 chars) -->
+    <title>Echo Chamber | Free 1v1 Browser Strategy Game — The Last Protocol</title>
+    <meta
+      name="description"
+      content="Play Echo Chamber free in your browser: a real-time 1v1 psychological strategy game with a 3D world and server-backed matches. Connect and enter the protocol."
+    />
+    <meta name="robots" content="index, follow" />
+    <meta name="author" content="Echo Chamber" />
+    <link rel="canonical" href="%VITE_SITE_URL%/" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Echo Chamber" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:url" content="%VITE_SITE_URL%/" />
+    <meta property="og:title" content="Echo Chamber | Free 1v1 Browser Strategy Game — The Last Protocol" />
+    <meta
+      property="og:description"
+      content="Play Echo Chamber free in your browser: a real-time 1v1 psychological strategy game with a 3D world and server-backed matches. Connect and enter the protocol."
+    />
+    <meta property="og:image" content="%VITE_SITE_URL%/favicon.svg" />
+    <meta property="og:image:type" content="image/svg+xml" />
+    <meta property="og:image:alt" content="Echo Chamber logo" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Echo Chamber | Free 1v1 Browser Strategy Game — The Last Protocol" />
+    <meta
+      name="twitter:description"
+      content="Play Echo Chamber free in your browser: a real-time 1v1 psychological strategy game with a 3D world and server-backed matches."
+    />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "VideoGame",
+        "name": "Echo Chamber: The Last Protocol",
+        "alternateName": "Echo Chamber",
+        "description": "Real-time 1v1 psychological strategy game in the browser with a 3D world and server-backed matches.",
+        "genre": ["Strategy game", "Browser game"],
+        "gamePlatform": "Web browser",
+        "operatingSystem": "Any",
+        "applicationCategory": "GameApplication",
+        "url": "%VITE_SITE_URL%/",
+        "image": "%VITE_SITE_URL%/favicon.svg",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD",
+          "availability": "https://schema.org/InStock"
+        }
+      }
+    </script>
+
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' http://127.0.0.1:3001 http://localhost:3001 ws://127.0.0.1:3001 ws://localhost:3001 wss: https:; worker-src blob:;">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <noscript>
+      <main style="padding: 2rem; max-width: 42rem; margin: 0 auto; font-family: system-ui, sans-serif; line-height: 1.6; color: #1a1a1a;">
+        <h1>Echo Chamber: The Last Protocol</h1>
+        <p>
+          Echo Chamber is a free browser-based 1v1 psychological strategy game with a 3D world and real-time,
+          server-backed matches. Enable JavaScript to play.
+        </p>
+        <p><a href="/privacy.html">Privacy notice</a></p>
+      </main>
+    </noscript>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

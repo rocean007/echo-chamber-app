@@ -1,0 +1,5 @@
+# Allow indexing of the SPA and static pages. Add your sitemap URL when you have a production domain:
+# Sitemap: https://your-domain.com/sitemap.xml
+
+User-agent: *
+Allow: /
