@@ -79,7 +79,8 @@ router.get('/', (req, res) => {
   res.json({ leaderboard: getLeaderboard(value.limit) });
 });
 
-const addressParam = Joi.string().pattern(/^[a-zA-Z0-9x._-]{1,200}$/).required();
+// Keep address format aligned with WS validation (EVM-style).
+const addressParam = Joi.string().trim().lowercase().pattern(/^0x[a-f0-9]{40}$/).required();
 
 router.get('/:address', (req, res) => {
   const { error, value } = addressParam.validate(req.params.address);

@@ -15,9 +15,9 @@ const Leaderboard = lazy(() => import('./components/Leaderboard'))
 function WalletModal({ onClose }: { onClose: () => void }) {
   const { connectWallet } = useGameStore()
   const options = [
-    { label: 'MetaMask', icon: '🦊', address: '0xAb3f7c9E21D32f4B77Ee01F019Cc32A' },
-    { label: 'WalletConnect', icon: '🔗', address: '0xDe7c4B77Aa22F019Cc32ABb3f7c9E21' },
-    { label: 'Email / Social', icon: '✉️', address: '0xF0194B3fCc32A9E21De7c4B77Aa22F0' },
+    { label: 'MetaMask', icon: '🦊', address: '0xab3f7c9e21d32f4b77ee01f019cc32a0ab3f7c9e' },
+    { label: 'WalletConnect', icon: '🔗', address: '0xde7c4b77aa22f019cc32abb3f7c9e210de7c4b77' },
+    { label: 'Email / Social', icon: '✉️', address: '0xf0194b3fcc32a9e21de7c4b77aa22f000f0194b3' },
   ]
   return (
     <motion.div
