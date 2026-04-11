@@ -1,29 +1,24 @@
-/**
- * Structured JSON logs (pino) — production default; pretty in dev if pino-pretty installed.
- */
 const pino = require('pino');
 const config = require('./config');
 
-const transport =
-  config.NODE_ENV !== 'production'
-    ? {
-        target: 'pino-pretty',
-        options: { colorize: true, translateTime: 'SYS:standard' },
-      }
-    : undefined;
+const isDev = config.NODE_ENV !== 'production';
 
-const logger = pino(
-  {
-    level: config.LOG_LEVEL,
-    base: { env: config.NODE_ENV },
-    redact: ['req.headers.authorization', 'req.headers.cookie'],
+const logger = pino({
+  level: config.LOG_LEVEL ?? (isDev ? 'debug' : 'info'),
+  base: { env: config.NODE_ENV },
+  redact: {
+    paths: ['req.headers.authorization', 'req.headers.cookie', 'req.headers["x-api-key"]'],
+    censor: '[redacted]',
   },
-  transport ? { transport } : undefined,
-);
+  timestamp: pino.stdTimeFunctions.isoTime,
+  ...(isDev && {
+    transport: {
+      target: 'pino-pretty',
+      options: { colorize: true, translateTime: 'SYS:standard', ignore: 'pid,hostname' },
+    },
+  }),
+});
 
-/**
- * Express request logging (latency + status; no body)
- */
 function httpLogger() {
   const pinoHttp = require('pino-http');
   return pinoHttp({
@@ -31,10 +26,24 @@ function httpLogger() {
     autoLogging: {
       ignore: (req) => req.url === '/api/health' || req.url === '/api/health/',
     },
-    customLogLevel: function (_req, res, err) {
+    customLogLevel(_req, res, err) {
       if (res.statusCode >= 500 || err) return 'error';
       if (res.statusCode >= 400) return 'warn';
       return 'info';
+    },
+    serializers: {
+      req(req) {
+        return {
+          id: req.id,
+          method: req.method,
+          url: req.url,
+          query: req.query,
+          params: req.params,
+          headers: req.headers,
+          remoteAddress: req.remoteAddress,
+          remotePort: req.remotePort,
+        };
+      },
     },
   });
 }

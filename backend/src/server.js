@@ -1,6 +1,3 @@
-// ============================================================
-// ECHO CHAMBER — Main Server (HTTP + WebSocket)
-// ============================================================
 const http = require('http');
 const express = require('express');
 const { WebSocketServer } = require('ws');
@@ -134,20 +131,31 @@ function shutdown(sig) {
   wss.clients.forEach((client) => client.close(1001, 'Server shutting down'));
   server.close(() => {
     logger.info('http server closed');
-    process.exit(0);
+    wss.close(() => {
+      logger.flush?.();
+      process.exit(0);
+    });
   });
   setTimeout(() => {
-    logger.fatal('shutdown timeout — forcing exit');
+    process.stderr.write('shutdown timeout — forcing exit\n');
     process.exit(1);
-  }, 10_000);
+  }, 10_000).unref();
 }
 
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('uncaughtException', (err) => {
-  logger.fatal({ err }, 'uncaughtException');
+  try {
+    logger.fatal({ err }, 'uncaughtException');
+  } catch {
+    process.stderr.write(JSON.stringify({ msg: 'uncaughtException', err: err.message }) + '\n');
+  }
   process.exit(1);
 });
 process.on('unhandledRejection', (reason) => {
-  logger.error({ reason }, 'unhandledRejection');
+  try {
+    logger.error({ reason }, 'unhandledRejection');
+  } catch {
+    process.stderr.write(JSON.stringify({ msg: 'unhandledRejection', reason: String(reason) }) + '\n');
+  }
 });
