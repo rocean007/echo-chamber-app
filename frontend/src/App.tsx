@@ -20,15 +20,14 @@ function WalletModal({ onClose }: { onClose: () => void }) {
   const [connecting, setConnecting] = useState<string | null>(null)
 
   const WALLET_META: Record<string, { color: string; label: string; icon: string }> = {
-    rabby:    { color: '#7B5EA7', label: 'Rabby',          icon: '🐰' },
-    metamask: { color: '#E8831D', label: 'MetaMask',       icon: '🦊' },
-    coinbase: { color: '#1652F0', label: 'Coinbase Wallet',icon: '🔵' },
-    brave:    { color: '#FB542B', label: 'Brave Wallet',   icon: '🦁' },
-    injected: { color: '#6B7280', label: 'Injected Wallet',icon: '👛' },
+    rabby:    { color: '#7B5EA7', label: 'Rabby',           icon: '🐰' },
+    metamask: { color: '#E8831D', label: 'MetaMask',        icon: '🦊' },
+    coinbase: { color: '#1652F0', label: 'Coinbase Wallet', icon: '🔵' },
+    brave:    { color: '#FB542B', label: 'Brave Wallet',    icon: '🦁' },
+    injected: { color: '#6B7280', label: 'Injected Wallet', icon: '👛' },
   }
 
   const detectedIds = new Set(wallets.map(w => w.id))
-  const detected = wallets
   const recommended = ['metamask', 'coinbase', 'brave'].filter(id => !detectedIds.has(id))
 
   const handleConnect = (wallet: WalletOption) => {
@@ -69,6 +68,8 @@ function WalletModal({ onClose }: { onClose: () => void }) {
       <button
         disabled={walletConnectPending}
         onClick={() => handleConnect(wallet)}
+        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)' }}
+        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
         style={{
           display: 'flex', alignItems: 'center', gap: 12,
           width: '100%', padding: '9px 12px',
@@ -76,38 +77,65 @@ function WalletModal({ onClose }: { onClose: () => void }) {
           borderRadius: 10, cursor: walletConnectPending ? 'wait' : 'pointer',
           transition: 'background 0.1s', textAlign: 'left',
         }}
-        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)' }}
-        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
       >
         <div style={{
-          width: 36, height: 36, borderRadius: 8,
+          width: 36, height: 36, borderRadius: 8, flexShrink: 0,
           background: meta.color,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 18, flexShrink: 0,
+          fontSize: 18,
         }}>
           {meta.icon}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{ fontSize: 14, fontWeight: 500, margin: 0, color: '#fff' }}>{meta.label}</p>
-          {sublabel && <p style={{ fontSize: 11, color: '#6b7280', margin: 0 }}>{sublabel}</p>}
+          {sublabel && (
+            <p style={{ fontSize: 11, color: '#6b7280', margin: 0 }}>{sublabel}</p>
+          )}
         </div>
-        {isConnecting
-          ? <div style={{
-              width: 14, height: 14, border: '2px solid #333',
-              borderTopColor: meta.color, borderRadius: '50%',
-              animation: 'spin 0.7s linear infinite', flexShrink: 0,
-            }} />
-          : <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0 }}>
-              <path d="M6 3l5 5-5 5" stroke="#4b5563" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-        }
+        {isConnecting ? (
+          <div style={{
+            width: 14, height: 14, flexShrink: 0,
+            border: '2px solid #333', borderTopColor: meta.color,
+            borderRadius: '50%', animation: 'spin 0.7s linear infinite',
+          }} />
+        ) : (
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0 }}>
+            <path d="M6 3l5 5-5 5" stroke="#4b5563" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        )}
       </button>
+    )
+  }
+
+  const NotInstalledRow = ({ id }: { id: string }) => {
+    const meta = WALLET_META[id]
+    if (!meta) return null
+    return (
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 12,
+        padding: '9px 12px', borderRadius: 10, opacity: 0.4,
+      }}>
+        <div style={{
+          width: 36, height: 36, borderRadius: 8, flexShrink: 0,
+          background: meta.color,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 18,
+        }}>
+          {meta.icon}
+        </div>
+        <div>
+          <p style={{ fontSize: 14, fontWeight: 500, margin: 0, color: '#fff' }}>{meta.label}</p>
+          <p style={{ fontSize: 11, color: '#6b7280', margin: 0 }}>Not installed</p>
+        </div>
+      </div>
     )
   }
 
   return (
     <motion.div
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
       onClick={onClose}
       style={{
         position: 'fixed', inset: 0, zIndex: 500,
@@ -116,28 +144,35 @@ function WalletModal({ onClose }: { onClose: () => void }) {
       }}
     >
       <motion.div
-        initial={{ scale: 0.96, y: 12 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.96, y: 12 }}
+        initial={{ scale: 0.96, y: 12 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.96, y: 12 }}
         transition={{ duration: 0.15 }}
         onClick={e => e.stopPropagation()}
         style={{
           width: 'min(740px, 94vw)',
-          background: '#111111',
+          background: '#111',
           borderRadius: 20,
           border: '1px solid #1f1f1f',
           overflow: 'hidden',
           display: 'flex',
+          flexDirection: 'row',
           boxShadow: '0 32px 80px rgba(0,0,0,0.6)',
         }}
       >
-        {/* Left panel — wallet list */}
+        {/* ── Left panel ── */}
         <div style={{
           width: 260, flexShrink: 0,
           borderRight: '1px solid #1f1f1f',
           display: 'flex', flexDirection: 'column',
         }}>
-          {/* Header */}
-          <div style={{ padding: '20px 16px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <h2 style={{ fontSize: 16, fontWeight: 600, margin: 0, color: '#fff' }}>Connect a Wallet</h2>
+          <div style={{
+            padding: '20px 16px 12px',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          }}>
+            <h2 style={{ fontSize: 16, fontWeight: 600, margin: 0, color: '#fff' }}>
+              Connect a Wallet
+            </h2>
             <button
               onClick={onClose}
               style={{
@@ -147,61 +182,46 @@ function WalletModal({ onClose }: { onClose: () => void }) {
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 16, lineHeight: 1,
               }}
-            >×</button>
+            >
+              ×
+            </button>
           </div>
 
-          <div style={{ flex: 1, overflowY: 'auto', padding: '0 8px' }}>
-            {/* Installed */}
-            {detected.length > 0 && (
+          <div style={{ flex: 1, overflowY: 'auto', padding: '0 8px 12px' }}>
+            {wallets.length > 0 && (
               <>
-                <p style={{ fontSize: 11, color: '#4b5563', letterSpacing: '0.05em', padding: '4px 8px 6px', margin: 0, textTransform: 'uppercase' }}>
+                <p style={{
+                  fontSize: 11, color: '#4b5563', letterSpacing: '0.05em',
+                  padding: '4px 8px 6px', margin: 0, textTransform: 'uppercase',
+                }}>
                   Installed
                 </p>
-                {detected.map((w, i) => (
+                {wallets.map((w, i) => (
                   <WalletRow key={w.id} wallet={w} sublabel={i === 0 ? 'Recent' : undefined} />
                 ))}
               </>
             )}
 
-            {/* Recommended */}
             {recommended.length > 0 && (
               <>
-                <p style={{ fontSize: 11, color: '#4b5563', letterSpacing: '0.05em', padding: '12px 8px 6px', margin: 0, textTransform: 'uppercase' }}>
+                <p style={{
+                  fontSize: 11, color: '#4b5563', letterSpacing: '0.05em',
+                  padding: '12px 8px 6px', margin: 0, textTransform: 'uppercase',
+                }}>
                   Recommended
                 </p>
-                {recommended.map(id => {
-                  const meta = WALLET_META[id]
-                  return (
-                    <div
-                      key={id}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 12,
-                        padding: '9px 12px', borderRadius: 10, opacity: 0.45,
-                      }}
-                    >
-                      <div style={{
-                        width: 36, height: 36, borderRadius: 8,
-                        background: meta.color,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 18, flexShrink: 0,
-                      }}>
-                        {meta.icon}
-                      </div>
-                      <div>
-                        <p style={{ fontSize: 14, fontWeight: 500, margin: 0, color: '#fff' }}>{meta.label}</p>
-                        <p style={{ fontSize: 11, color: '#6b7280', margin: 0 }}>Not installed</p>
-                      </div>
-                    </div>
-                  )
-                })}
+                {recommended.map(id => (
+                  <NotInstalledRow key={id} id={id} />
+                ))}
               </>
             )}
           </div>
         </div>
 
-        {/* Right panel — info */}
+        {/* ── Right panel ── */}
         <div style={{
-          flex: 1, display: 'flex', flexDirection: 'column',
+          flex: 1,
+          display: 'flex', flexDirection: 'column',
           alignItems: 'center', justifyContent: 'center',
           padding: '40px 32px', gap: 28,
         }}>
@@ -214,10 +234,15 @@ function WalletModal({ onClose }: { onClose: () => void }) {
               <div style={{
                 width: 52, height: 52, borderRadius: 12, flexShrink: 0,
                 background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24,
-              }}>🏦</div>
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 24,
+              }}>
+                🏦
+              </div>
               <div>
-                <p style={{ fontSize: 14, fontWeight: 500, color: '#fff', margin: '0 0 4px' }}>A Home for your Digital Assets</p>
+                <p style={{ fontSize: 14, fontWeight: 500, color: '#fff', margin: '0 0 4px' }}>
+                  A Home for your Digital Assets
+                </p>
                 <p style={{ fontSize: 13, color: '#6b7280', margin: 0, lineHeight: 1.6 }}>
                   Wallets store and manage your on-chain identity, tokens, and assets across any app.
                 </p>
@@ -228,10 +253,15 @@ function WalletModal({ onClose }: { onClose: () => void }) {
               <div style={{
                 width: 52, height: 52, borderRadius: 12, flexShrink: 0,
                 background: 'linear-gradient(135deg, #06b6d4, #3b82f6)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24,
-              }}>🔑</div>
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 24,
+              }}>
+                🔑
+              </div>
               <div>
-                <p style={{ fontSize: 14, fontWeight: 500, color: '#fff', margin: '0 0 4px' }}>A New Way to Log In</p>
+                <p style={{ fontSize: 14, fontWeight: 500, color: '#fff', margin: '0 0 4px' }}>
+                  A New Way to Log In
+                </p>
                 <p style={{ fontSize: 13, color: '#6b7280', margin: 0, lineHeight: 1.6 }}>
                   No passwords. Sign a message with your wallet to prove ownership and open your session.
                 </p>
@@ -241,28 +271,30 @@ function WalletModal({ onClose }: { onClose: () => void }) {
 
           <div style={{ display: 'flex', gap: 10, width: '100%' }}>
             
+            <a
               href="https://rabby.io"
               target="_blank"
               rel="noreferrer"
               style={{
-                flex: 1, padding: '11px 0', textAlign: 'center',
+                flex: 1, padding: '11px 0', textAlign: 'center' as const,
                 background: '#fff', color: '#111',
                 borderRadius: 10, fontSize: 13, fontWeight: 600,
-                textDecoration: 'none', cursor: 'pointer',
+                textDecoration: 'none', display: 'block',
               }}
             >
               Get a Wallet
             </a>
             
+            <a
               href="https://learn.rabby.io"
               target="_blank"
               rel="noreferrer"
               style={{
-                flex: 1, padding: '11px 0', textAlign: 'center',
+                flex: 1, padding: '11px 0', textAlign: 'center' as const,
                 background: '#1a1a1a', color: '#fff',
                 border: '1px solid #2a2a2a',
                 borderRadius: 10, fontSize: 13, fontWeight: 600,
-                textDecoration: 'none', cursor: 'pointer',
+                textDecoration: 'none', display: 'block',
               }}
             >
               Learn More
