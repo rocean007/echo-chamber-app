@@ -4,6 +4,8 @@ import { ConsentRoot, useConsentShell } from './consent'
 import { useGameStore } from './store/gameStore'
 import GameBoardFallback from './components/GameBoardFallback'
 import PhaseRouteFallback from './components/PhaseRouteFallback'
+import { getAvailableWallets, connectWalletAndSignIn, type WalletOption } from '../services/wallet'
+import { setGameAuthToken, sendGameMessage, whenSocketOpen } from './services/gameSocket'
 
 const GameBoard = lazy(() => import('./components/GameBoard'))
 const MatchmakingQueue = lazy(() => import('./components/MatchmakingQueue'))
@@ -13,12 +15,41 @@ const AgentModal = lazy(() => import('./components/AgentModal'))
 const Leaderboard = lazy(() => import('./components/Leaderboard'))
 
 function WalletModal({ onClose }: { onClose: () => void }) {
-  const { connectWallet, walletConnectPending } = useGameStore()
+  const { walletConnectPending } = useGameStore()
+  const [wallets] = useState<WalletOption[]>(() => getAvailableWallets())
+
+  const handleConnect = (wallet: WalletOption) => {
+    void (async () => {
+      useGameStore.setState({ walletConnectPending: true, networkError: null })
+      try {
+        const { token } = await connectWalletAndSignIn(wallet.provider)
+        setGameAuthToken(token)
+        await whenSocketOpen()
+        if (!sendGameMessage({ type: 'CONNECT_WALLET', token })) {
+          setGameAuthToken(null)
+          useGameStore.setState({ networkError: 'Socket not ready. Is the backend running?' })
+          return
+        }
+        const deadline = Date.now() + 8000
+        while (Date.now() < deadline) {
+          const s = useGameStore.getState()
+          if (s.walletConnected) { onClose(); return }
+          if (s.networkError) return
+          await new Promise(r => setTimeout(r, 100))
+        }
+      } catch (e) {
+        setGameAuthToken(null)
+        const msg = e instanceof Error ? e.message : 'Wallet connection failed.'
+        useGameStore.setState({ networkError: msg })
+      } finally {
+        useGameStore.setState({ walletConnectPending: false })
+      }
+    })()
+  }
+
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       onClick={onClose}
       style={{
         position: 'fixed', inset: 0, zIndex: 500,
@@ -27,9 +58,7 @@ function WalletModal({ onClose }: { onClose: () => void }) {
       }}
     >
       <motion.div
-        initial={{ scale: 0.85, y: 30 }}
-        animate={{ scale: 1, y: 0 }}
-        exit={{ scale: 0.85, y: 30 }}
+        initial={{ scale: 0.85, y: 30 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.85, y: 30 }}
         onClick={e => e.stopPropagation()}
         style={{
           width: 'min(360px, 90vw)',
@@ -40,76 +69,59 @@ function WalletModal({ onClose }: { onClose: () => void }) {
         }}
       >
         <h3 style={{
-          fontFamily: 'var(--font-display)',
-          fontSize: '1rem',
-          color: 'var(--accent-2)',
-          letterSpacing: '0.2em',
-          marginBottom: 6,
+          fontFamily: 'var(--font-display)', fontSize: '1rem',
+          color: 'var(--accent-2)', letterSpacing: '0.2em', marginBottom: 6,
         }}>
           CONNECT WALLET
         </h3>
         <p style={{
-          fontFamily: 'var(--font-mono)',
-          fontSize: '0.65rem',
-          color: 'var(--text-muted)',
-          marginBottom: 20,
+          fontFamily: 'var(--font-mono)', fontSize: '0.65rem',
+          color: 'var(--text-muted)', marginBottom: 20,
         }}>
-          Rabby on Monad signs a short message, then the game server opens your session over the live socket.
+          Sign a message to open your session on the Monad network.
         </p>
-        <button
-          type="button"
-          disabled={walletConnectPending}
-          onClick={() => {
-            void (async () => {
-              await connectWallet()
-              const deadline = Date.now() + 8000
-              while (Date.now() < deadline) {
-                const s = useGameStore.getState()
-                if (s.walletConnected) {
-                  onClose()
-                  return
-                }
-                if (s.networkError) return
-                await new Promise(r => setTimeout(r, 100))
-              }
-            })()
-          }}
-          style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14,
-            width: '100%', padding: '14px 16px',
-            marginBottom: 10,
-            background: 'rgba(211,47,47,0.08)',
-            border: '1px solid rgba(211,47,47,0.25)',
-            borderRadius: 10, cursor: walletConnectPending ? 'wait' : 'pointer',
-            opacity: walletConnectPending ? 0.75 : 1,
-            transition: 'all 0.15s',
-            fontFamily: 'var(--font-body)',
-            fontSize: '1rem', fontWeight: 600,
-            color: 'var(--text)',
-          }}
-        >
-          <span style={{ fontSize: '1.4rem' }}>🐰</span>
-          <span>{walletConnectPending ? 'CONNECTING…' : 'RABBY (MONAD)'}</span>
-        </button>
-        <p style={{
-          fontFamily: 'var(--font-mono)',
-          fontSize: '0.58rem',
-          color: 'var(--text-hint)',
-          marginBottom: 14,
-          lineHeight: 1.5,
-        }}>
-          Need Rabby?{' '}
-          <a href="https://rabby.io" target="_blank" rel="noreferrer" style={{ color: 'var(--accent-2)' }}>
-            rabby.io
-          </a>
-          {' · '}
-          Backend needs <code style={{ fontSize: '0.55rem' }}>AUTH_SECRET</code> set (see backend/.env.example).
-        </p>
+
+        {wallets.length === 0 ? (
+          <p style={{
+            fontFamily: 'var(--font-mono)', fontSize: '0.65rem',
+            color: 'var(--accent-2)', marginBottom: 16, textAlign: 'center',
+          }}>
+            No wallet detected. Install{' '}
+            <a href="https://rabby.io" target="_blank" rel="noreferrer" style={{ color: 'var(--accent-2)' }}>
+              Rabby
+            </a>{' '}
+            and refresh.
+          </p>
+        ) : (
+          wallets.map(wallet => (
+            <button
+              key={wallet.id}
+              type="button"
+              disabled={walletConnectPending}
+              onClick={() => handleConnect(wallet)}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14,
+                width: '100%', padding: '14px 16px', marginBottom: 10,
+                background: 'rgba(211,47,47,0.08)',
+                border: '1px solid rgba(211,47,47,0.25)',
+                borderRadius: 10, cursor: walletConnectPending ? 'wait' : 'pointer',
+                opacity: walletConnectPending ? 0.75 : 1,
+                transition: 'all 0.15s',
+                fontFamily: 'var(--font-body)', fontSize: '1rem', fontWeight: 600,
+                color: 'var(--text)',
+              }}
+            >
+              <span style={{ fontSize: '1.4rem' }}>{wallet.icon}</span>
+              <span>{walletConnectPending ? 'CONNECTING…' : wallet.name.toUpperCase()}</span>
+            </button>
+          ))
+        )}
+
         <button
           onClick={onClose}
           style={{
             width: '100%', padding: '10px',
-            background: 'none',             border: '1px solid rgba(255,248,231,0.18)',
+            background: 'none', border: '1px solid rgba(255,248,231,0.18)',
             borderRadius: 8, cursor: 'pointer',
             color: 'var(--text-secondary)',
             fontFamily: 'var(--font-mono)', fontSize: '0.65rem',

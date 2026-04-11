@@ -5,25 +5,51 @@ const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3001'
 type Eip1193Provider = {
   request: (args: { method: string; params?: unknown[] }) => Promise<unknown>
   isRabby?: boolean
+  isMetaMask?: boolean
+  isBraveWallet?: boolean
+  isCoinbaseWallet?: boolean
   providers?: Eip1193Provider[]
+  [key: string]: unknown
 }
 
-function getInjectedEthereum(): Eip1193Provider | null {
+export type WalletOption = {
+  id: string
+  name: string
+  icon: string
+  provider: Eip1193Provider
+}
+
+function getWindowEthereum(): (Eip1193Provider & { providers?: Eip1193Provider[] }) | null {
   const w = window as unknown as { ethereum?: Eip1193Provider & { providers?: Eip1193Provider[] } }
-  const eth = w.ethereum
-  if (!eth) return null
-  if (eth.isRabby) return eth
-  const list = eth.providers
-  if (Array.isArray(list)) {
-    const rabby = list.find((p) => p.isRabby)
-    if (rabby) return rabby
-  }
-  return eth
+  return w.ethereum ?? null
 }
 
-export function isRabbyAvailable(): boolean {
-  const p = getInjectedEthereum()
-  return Boolean(p?.isRabby)
+export function getAvailableWallets(): WalletOption[] {
+  const eth = getWindowEthereum()
+  if (!eth) return []
+
+  const candidates: Eip1193Provider[] = Array.isArray(eth.providers)
+    ? eth.providers
+    : [eth]
+
+  const wallets: WalletOption[] = []
+
+  for (const p of candidates) {
+    if (p.isRabby) {
+      wallets.push({ id: 'rabby', name: 'Rabby', icon: '🐰', provider: p })
+    } else if (p.isBraveWallet) {
+      wallets.push({ id: 'brave', name: 'Brave Wallet', icon: '🦁', provider: p })
+    } else if (p.isCoinbaseWallet) {
+      wallets.push({ id: 'coinbase', name: 'Coinbase Wallet', icon: '🔵', provider: p })
+    } else if (p.isMetaMask) {
+      wallets.push({ id: 'metamask', name: 'MetaMask', icon: '🦊', provider: p })
+    } else {
+      wallets.push({ id: 'injected', name: 'Injected Wallet', icon: '👛', provider: p })
+    }
+  }
+
+  // deduplicate by id
+  return wallets.filter((w, i, arr) => arr.findIndex(x => x.id === w.id) === i)
 }
 
 function monadChainConfig() {
@@ -64,23 +90,12 @@ async function ensureMonadNetwork(provider: Eip1193Provider): Promise<void> {
   }
 }
 
-export type RabbySignInResult = {
+export type SignInResult = {
   address: string
   token: string
 }
 
-/**
- * Connect Rabby (or the Rabby-priority injected stack), switch to Monad, sign the server nonce message, exchange for an API token.
- */
-export async function connectRabbyAndSignIn(): Promise<RabbySignInResult> {
-  const provider = getInjectedEthereum()
-  if (!provider) {
-    throw new Error('No wallet found. Install Rabby and refresh this page.')
-  }
-  if (!provider.isRabby) {
-    throw new Error('Rabby was not detected. Set Rabby as your default wallet or install it from rabby.io.')
-  }
-
+export async function connectWalletAndSignIn(provider: Eip1193Provider): Promise<SignInResult> {
   await ensureMonadNetwork(provider)
 
   const accounts = (await provider.request({ method: 'eth_requestAccounts' })) as string[]
@@ -116,4 +131,12 @@ export async function connectRabbyAndSignIn(): Promise<RabbySignInResult> {
   }
 
   return { address, token }
+}
+
+// keep backward compat
+export async function connectRabbyAndSignIn(): Promise<SignInResult> {
+  const wallets = getAvailableWallets()
+  const rabby = wallets.find(w => w.id === 'rabby')
+  if (!rabby) throw new Error('Rabby not found. Install it from rabby.io.')
+  return connectWalletAndSignIn(rabby.provider)
 }
