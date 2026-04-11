@@ -17,9 +17,19 @@ const Leaderboard = lazy(() => import('./components/Leaderboard'))
 function WalletModal({ onClose }: { onClose: () => void }) {
   const { walletConnectPending } = useGameStore()
   const [wallets] = useState<WalletOption[]>(() => getAvailableWallets())
+  const [connecting, setConnecting] = useState<string | null>(null)
+
+  const WALLET_META: Record<string, { color: string; icon: string }> = {
+    rabby:    { color: '#8B5CF6', icon: '👛' },
+    metamask: { color: '#FF6B35', icon: '🦊' },
+    coinbase: { color: '#1652F0', icon: '🔵' },
+    brave:    { color: '#FB542B', icon: '🦁' },
+    injected: { color: '#888780', icon: '💳' },
+  }
 
   const handleConnect = (wallet: WalletOption) => {
     void (async () => {
+      setConnecting(wallet.id)
       useGameStore.setState({ walletConnectPending: true, networkError: null })
       try {
         const { token } = await connectWalletAndSignIn(wallet.provider)
@@ -42,10 +52,14 @@ function WalletModal({ onClose }: { onClose: () => void }) {
         const msg = e instanceof Error ? e.message : 'Wallet connection failed.'
         useGameStore.setState({ networkError: msg })
       } finally {
+        setConnecting(null)
         useGameStore.setState({ walletConnectPending: false })
       }
     })()
   }
+
+  const ALL_WALLETS = ['rabby', 'metamask', 'coinbase', 'brave']
+  const detectedIds = new Set(wallets.map(w => w.id))
 
   return (
     <motion.div
@@ -54,82 +68,118 @@ function WalletModal({ onClose }: { onClose: () => void }) {
       style={{
         position: 'fixed', inset: 0, zIndex: 500,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)',
+        background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)',
       }}
     >
       <motion.div
-        initial={{ scale: 0.85, y: 30 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.85, y: 30 }}
+        initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 16 }}
+        transition={{ duration: 0.15 }}
         onClick={e => e.stopPropagation()}
         style={{
-          width: 'min(360px, 90vw)',
-          background: 'rgba(26,26,26,0.98)',
-          border: '1px solid rgba(211,47,47,0.4)',
-          borderRadius: 14,
-          padding: '28px 24px',
+          width: 'min(380px, 92vw)',
+          background: '#ffffff',
+          borderRadius: 16,
+          overflow: 'hidden',
+          boxShadow: '0 24px 64px rgba(0,0,0,0.4)',
         }}
       >
-        <h3 style={{
-          fontFamily: 'var(--font-display)', fontSize: '1rem',
-          color: 'var(--accent-2)', letterSpacing: '0.2em', marginBottom: 6,
-        }}>
-          CONNECT WALLET
-        </h3>
-        <p style={{
-          fontFamily: 'var(--font-mono)', fontSize: '0.65rem',
-          color: 'var(--text-muted)', marginBottom: 20,
-        }}>
-          Sign a message to open your session on the Monad network.
-        </p>
-
-        {wallets.length === 0 ? (
-          <p style={{
-            fontFamily: 'var(--font-mono)', fontSize: '0.65rem',
-            color: 'var(--accent-2)', marginBottom: 16, textAlign: 'center',
-          }}>
-            No wallet detected. Install{' '}
-            <a href="https://rabby.io" target="_blank" rel="noreferrer" style={{ color: 'var(--accent-2)' }}>
-              Rabby
-            </a>{' '}
-            and refresh.
+        {/* Header */}
+        <div style={{ padding: '20px 20px 14px' }}>
+          <p style={{ fontSize: 11, letterSpacing: '0.1em', color: '#9ca3af', margin: '0 0 4px', textTransform: 'uppercase' }}>
+            Echo Chamber
           </p>
-        ) : (
-          wallets.map(wallet => (
-            <button
-              key={wallet.id}
-              type="button"
-              disabled={walletConnectPending}
-              onClick={() => handleConnect(wallet)}
-              style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14,
-                width: '100%', padding: '14px 16px', marginBottom: 10,
-                background: 'rgba(211,47,47,0.08)',
-                border: '1px solid rgba(211,47,47,0.25)',
-                borderRadius: 10, cursor: walletConnectPending ? 'wait' : 'pointer',
-                opacity: walletConnectPending ? 0.75 : 1,
-                transition: 'all 0.15s',
-                fontFamily: 'var(--font-body)', fontSize: '1rem', fontWeight: 600,
-                color: 'var(--text)',
-              }}
-            >
-              <span style={{ fontSize: '1.4rem' }}>{wallet.icon}</span>
-              <span>{walletConnectPending ? 'CONNECTING…' : wallet.name.toUpperCase()}</span>
-            </button>
-          ))
-        )}
+          <h2 style={{ fontSize: 17, fontWeight: 600, margin: '0 0 4px', color: '#111' }}>
+            Connect wallet
+          </h2>
+          <p style={{ fontSize: 13, color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
+            Sign a message to authenticate. No gas required.
+          </p>
+        </div>
 
-        <button
-          onClick={onClose}
-          style={{
-            width: '100%', padding: '10px',
-            background: 'none', border: '1px solid rgba(255,248,231,0.18)',
-            borderRadius: 8, cursor: 'pointer',
-            color: 'var(--text-secondary)',
-            fontFamily: 'var(--font-mono)', fontSize: '0.65rem',
-          }}
-        >
-          CANCEL
-        </button>
+        {/* Wallet list */}
+        <div style={{ padding: '0 10px 10px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {ALL_WALLETS.map(id => {
+            const detected = detectedIds.has(id)
+            const wallet = wallets.find(w => w.id === id)
+            const meta = WALLET_META[id]
+            const isConnecting = connecting === id
+            const names: Record<string, string> = {
+              rabby: 'Rabby', metamask: 'MetaMask', coinbase: 'Coinbase Wallet', brave: 'Brave Wallet'
+            }
+            return (
+              <button
+                key={id}
+                disabled={!detected || walletConnectPending}
+                onClick={() => wallet && handleConnect(wallet)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  width: '100%', padding: '11px 10px',
+                  background: 'transparent',
+                  border: '1px solid #f3f4f6',
+                  borderRadius: 10,
+                  cursor: detected && !walletConnectPending ? 'pointer' : 'default',
+                  opacity: detected ? 1 : 0.45,
+                  transition: 'background 0.1s',
+                  textAlign: 'left',
+                }}
+                onMouseEnter={e => { if (detected) (e.currentTarget as HTMLButtonElement).style.background = '#f9fafb' }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent' }}
+              >
+                <div style={{
+                  width: 36, height: 36, borderRadius: 8,
+                  background: meta.color,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0, fontSize: 18,
+                }}>
+                  {meta.icon}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 14, fontWeight: 500, margin: 0, color: '#111' }}>{names[id]}</p>
+                  <p style={{ fontSize: 12, color: '#9ca3af', margin: 0 }}>
+                    {isConnecting ? 'Connecting…' : detected ? 'Detected' : 'Not installed'}
+                  </p>
+                </div>
+                {detected && !isConnecting && (
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                    <path d="M6 3l5 5-5 5" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                )}
+                {isConnecting && (
+                  <div style={{
+                    width: 14, height: 14, border: '2px solid #e5e7eb',
+                    borderTopColor: meta.color, borderRadius: '50%',
+                    animation: 'spin 0.7s linear infinite',
+                  }} />
+                )}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Footer */}
+        <div style={{
+          padding: '12px 20px 18px',
+          borderTop: '1px solid #f3f4f6',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <p style={{ fontSize: 12, color: '#9ca3af', margin: 0 }}>
+            New to wallets?{' '}
+            <a href="https://rabby.io" target="_blank" rel="noreferrer" style={{ color: '#6366f1', textDecoration: 'none' }}>
+              Get Rabby
+            </a>
+          </p>
+          <button
+            onClick={onClose}
+            style={{
+              fontSize: 13, color: '#6b7280', background: 'none',
+              border: 'none', cursor: 'pointer', padding: 0,
+            }}
+          >
+            Cancel
+          </button>
+        </div>
       </motion.div>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </motion.div>
   )
 }
