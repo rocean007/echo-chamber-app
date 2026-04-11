@@ -13,12 +13,7 @@ const AgentModal = lazy(() => import('./components/AgentModal'))
 const Leaderboard = lazy(() => import('./components/Leaderboard'))
 
 function WalletModal({ onClose }: { onClose: () => void }) {
-  const { connectWallet } = useGameStore()
-  const options = [
-    { label: 'MetaMask', icon: '🦊', address: '0xab3f7c9e21d32f4b77ee01f019cc32a0ab3f7c9e' },
-    { label: 'WalletConnect', icon: '🔗', address: '0xde7c4b77aa22f019cc32abb3f7c9e210de7c4b77' },
-    { label: 'Email / Social', icon: '✉️', address: '0xf0194b3fcc32a9e21de7c4b77aa22f000f0194b3' },
-  ]
+  const { connectWallet, walletConnectPending } = useGameStore()
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -59,29 +54,57 @@ function WalletModal({ onClose }: { onClose: () => void }) {
           color: 'var(--text-muted)',
           marginBottom: 20,
         }}>
-          Choose your identity to enter the protocol
+          Rabby on Monad signs a short message, then the game server opens your session over the live socket.
         </p>
-        {options.map(opt => (
-          <button
-            key={opt.label}
-            onClick={() => { connectWallet(opt.address); onClose() }}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 14,
-              width: '100%', padding: '14px 16px',
-              marginBottom: 10,
-              background: 'rgba(211,47,47,0.08)',
-              border: '1px solid rgba(211,47,47,0.25)',
-              borderRadius: 10, cursor: 'pointer',
-              transition: 'all 0.15s',
-              fontFamily: 'var(--font-body)',
-              fontSize: '1rem', fontWeight: 600,
-              color: 'var(--text)',
-            }}
-          >
-            <span style={{ fontSize: '1.4rem' }}>{opt.icon}</span>
-            <span>{opt.label}</span>
-          </button>
-        ))}
+        <button
+          type="button"
+          disabled={walletConnectPending}
+          onClick={() => {
+            void (async () => {
+              await connectWallet()
+              const deadline = Date.now() + 8000
+              while (Date.now() < deadline) {
+                const s = useGameStore.getState()
+                if (s.walletConnected) {
+                  onClose()
+                  return
+                }
+                if (s.networkError) return
+                await new Promise(r => setTimeout(r, 100))
+              }
+            })()
+          }}
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14,
+            width: '100%', padding: '14px 16px',
+            marginBottom: 10,
+            background: 'rgba(211,47,47,0.08)',
+            border: '1px solid rgba(211,47,47,0.25)',
+            borderRadius: 10, cursor: walletConnectPending ? 'wait' : 'pointer',
+            opacity: walletConnectPending ? 0.75 : 1,
+            transition: 'all 0.15s',
+            fontFamily: 'var(--font-body)',
+            fontSize: '1rem', fontWeight: 600,
+            color: 'var(--text)',
+          }}
+        >
+          <span style={{ fontSize: '1.4rem' }}>🐰</span>
+          <span>{walletConnectPending ? 'CONNECTING…' : 'RABBY (MONAD)'}</span>
+        </button>
+        <p style={{
+          fontFamily: 'var(--font-mono)',
+          fontSize: '0.58rem',
+          color: 'var(--text-hint)',
+          marginBottom: 14,
+          lineHeight: 1.5,
+        }}>
+          Need Rabby?{' '}
+          <a href="https://rabby.io" target="_blank" rel="noreferrer" style={{ color: 'var(--accent-2)' }}>
+            rabby.io
+          </a>
+          {' · '}
+          Backend needs <code style={{ fontSize: '0.55rem' }}>AUTH_SECRET</code> set (see backend/.env.example).
+        </p>
         <button
           onClick={onClose}
           style={{
@@ -100,7 +123,7 @@ function WalletModal({ onClose }: { onClose: () => void }) {
 }
 
 function LobbyScreen() {
-  const { walletConnected, walletAddress, startMatchmaking, disconnectWallet } = useGameStore()
+  const { walletConnected, walletAddress, walletConnectPending, startMatchmaking, disconnectWallet } = useGameStore()
   const { openPreferenceCenter } = useConsentShell()
   const [showWallet, setShowWallet] = useState(false)
 
@@ -236,6 +259,8 @@ function LobbyScreen() {
             </>
           ) : (
             <button
+              type="button"
+              disabled={walletConnectPending}
               onClick={() => setShowWallet(true)}
               style={{
                 width: '100%',
@@ -247,7 +272,8 @@ function LobbyScreen() {
                 fontFamily: 'var(--font-display)',
                 fontSize: '1rem',
                 letterSpacing: '0.2em',
-                cursor: 'pointer',
+                cursor: walletConnectPending ? 'wait' : 'pointer',
+                opacity: walletConnectPending ? 0.7 : 1,
                 boxShadow: '0 0 24px rgba(211,47,47,0.25)',
                 transition: 'all 0.2s',
               }}
@@ -268,7 +294,7 @@ function LobbyScreen() {
           width: '100%',
           left: 0,
         }}>
-          PROTOCOL v0.1.0 — ALL BLOCKCHAIN LOGIC MOCKED
+          PROTOCOL v0.1.0 — RABBY / MONAD SIGN-IN
           {' · '}
           <button
             type="button"

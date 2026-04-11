@@ -25,6 +25,8 @@ const envSchema = Joi.object({
   AUTH_SECRET: Joi.string().min(16).default('dev-unsafe-auth-secret-change-me'),
   AUTH_TOKEN_TTL_S: Joi.number().integer().min(30).max(24 * 60 * 60).default(10 * 60),
   AUTH_NONCE_TTL_S: Joi.number().integer().min(30).max(24 * 60 * 60).default(10 * 60),
+  /** Chain ID embedded in the sign-in message (must match the network you ask players to use, e.g. Monad testnet 10143). */
+  AUTH_CHAIN_ID: Joi.number().integer().min(1).max(2_147_483_647).default(10143),
 
   AGENT_COUNT: Joi.number().integer().min(1).max(64).default(12),
   BOT_DELAY_MS: Joi.number().integer().min(0).max(60_000).default(1500),
@@ -118,6 +120,7 @@ function syncLegacyEnv() {
     AUTH_SECRET: config.AUTH_SECRET,
     AUTH_TOKEN_TTL_S: config.AUTH_TOKEN_TTL_S,
     AUTH_NONCE_TTL_S: config.AUTH_NONCE_TTL_S,
+    AUTH_CHAIN_ID: config.AUTH_CHAIN_ID,
   };
   for (const [k, v] of Object.entries(map)) {
     process.env[k] = String(v);

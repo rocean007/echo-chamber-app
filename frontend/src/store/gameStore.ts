@@ -1,5 +1,12 @@
 import { create } from 'zustand'
-import { registerGameStore, sendGameMessage, fetchLeaderboard } from '../services/gameSocket'
+import {
+  registerGameStore,
+  sendGameMessage,
+  fetchLeaderboard,
+  setGameAuthToken,
+  whenSocketOpen,
+} from '../services/gameSocket'
+import { connectRabbyAndSignIn } from '../services/wallet'
 
 export type EchoStone = 'Growth' | 'Decay' | 'Light' | 'Shadow'
 export type AgentFaction = 'neutral' | 'player1' | 'player2'
@@ -52,8 +59,9 @@ export interface GameState {
   worldSeed: number | null
   networkStatus: NetworkStatus
   networkError: string | null
+  walletConnectPending: boolean
 
-  connectWallet: (address: string) => void
+  connectWallet: () => Promise<void>
   disconnectWallet: () => void
   startMatchmaking: () => void
   selectAgent: (id: string | null) => void
@@ -95,18 +103,33 @@ export const useGameStore = create<GameState>((set, get) => ({
   worldSeed: null,
   networkStatus: 'offline',
   networkError: null,
+  walletConnectPending: false,
 
-  connectWallet: (address) => {
-    const trimmed = address.trim()
-    if (!trimmed) return
-    if (!sendGameMessage({ type: 'CONNECT_WALLET', walletAddress: trimmed })) {
-      set({
-        networkError: 'Cannot reach game server. Run `npm run dev` in /backend first.',
-      })
+  connectWallet: async () => {
+    set({ walletConnectPending: true, networkError: null })
+    try {
+      const { token } = await connectRabbyAndSignIn()
+      setGameAuthToken(token)
+      await whenSocketOpen()
+      if (!sendGameMessage({ type: 'CONNECT_WALLET', token })) {
+        setGameAuthToken(null)
+        set({
+          networkError:
+            'Connected to Rabby but the game socket is closed. Ensure the backend is running and VITE_WS_URL matches the server.',
+        })
+        return
+      }
+    } catch (e) {
+      setGameAuthToken(null)
+      const msg = e instanceof Error ? e.message : 'Wallet connection failed.'
+      set({ networkError: msg })
+    } finally {
+      set({ walletConnectPending: false })
     }
   },
 
   disconnectWallet: () => {
+    setGameAuthToken(null)
     sendGameMessage({ type: 'DISCONNECT_WALLET' })
   },
 

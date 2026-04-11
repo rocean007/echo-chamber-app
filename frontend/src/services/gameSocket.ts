@@ -17,6 +17,42 @@ let ws: WebSocket | null = null
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null
 let intentionalClose = false
 
+/** Session token from POST /api/auth/verify — required for CONNECT_WALLET on the socket. */
+let authToken: string | null = null
+
+export function setGameAuthToken(token: string | null) {
+  authToken = token
+}
+
+export function getGameAuthToken(): string | null {
+  return authToken
+}
+
+export function whenSocketOpen(timeoutMs = 12_000): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (typeof WebSocket === 'undefined') {
+      reject(new Error('WebSocket is not available in this environment.'))
+      return
+    }
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      resolve()
+      return
+    }
+    const deadline = Date.now() + timeoutMs
+    const id = setInterval(() => {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        clearInterval(id)
+        resolve()
+        return
+      }
+      if (Date.now() > deadline) {
+        clearInterval(id)
+        reject(new Error('Timed out waiting for the game server. Start the backend and check VITE_WS_URL.'))
+      }
+    }, 120)
+  })
+}
+
 const EMPTY_WORLD: WorldState = {
   biomes: ['mushroom_forest', 'crystal_desert', 'magma_plains', 'ash_tundra'],
   structureCount: 0,
@@ -106,9 +142,9 @@ export function connectGameSocket() {
   ws.onopen = () => {
     storeApi?.setState({ networkStatus: 'ready', networkError: null })
     ws?.send(JSON.stringify({ type: 'PING' }))
-    const { walletConnected, walletAddress } = storeApi?.getState() ?? {}
-    if (walletConnected && walletAddress) {
-      ws?.send(JSON.stringify({ type: 'CONNECT_WALLET', walletAddress }))
+    const { walletConnected } = storeApi?.getState() ?? {}
+    if (walletConnected && authToken) {
+      ws?.send(JSON.stringify({ type: 'CONNECT_WALLET', token: authToken }))
     }
     void fetchLeaderboard()
   }

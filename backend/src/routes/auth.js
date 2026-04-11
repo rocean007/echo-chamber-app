@@ -66,11 +66,18 @@ function verifyToken(token) {
   return { ok: true, address: payload.sub }
 }
 
+function resolveSignInOrigin(req) {
+  const header = typeof req.get === 'function' ? req.get('origin') : null
+  if (header && config.corsOrigins.includes(header)) return header
+  return (config.corsOrigins && config.corsOrigins[0]) || 'http://localhost:5173'
+}
+
 function makeMessage({ address, nonce, origin }) {
   const domain = (() => {
     try { return new URL(origin).host } catch { return 'localhost' }
   })()
   const issuedAt = new Date().toISOString()
+  const chainId = Number(config.AUTH_CHAIN_ID)
   return [
     'Echo Chamber wants you to sign in with your Ethereum account:',
     address,
@@ -79,7 +86,7 @@ function makeMessage({ address, nonce, origin }) {
     '',
     `URI: ${origin}`,
     'Version: 1',
-    'Chain ID: 1',
+    `Chain ID: ${chainId}`,
     `Nonce: ${nonce}`,
     `Issued At: ${issuedAt}`,
   ].join('\n')
@@ -93,7 +100,7 @@ router.get('/nonce', (req, res) => {
   if (error) return res.status(400).json({ error: 'Invalid address' })
 
   const ip = trustedClientIp(req)
-  const origin = (config.corsOrigins && config.corsOrigins[0]) || 'http://localhost:5173'
+  const origin = resolveSignInOrigin(req)
   const nonce = crypto.randomBytes(16).toString('hex')
   const message = makeMessage({ address, nonce, origin })
   nonces.set(nonce, { address, ip, message, exp: Date.now() + NONCE_TTL_MS })
