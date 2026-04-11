@@ -19,13 +19,17 @@ function WalletModal({ onClose }: { onClose: () => void }) {
   const [wallets] = useState<WalletOption[]>(() => getAvailableWallets())
   const [connecting, setConnecting] = useState<string | null>(null)
 
-  const WALLET_META: Record<string, { color: string; icon: string }> = {
-    rabby:    { color: '#8B5CF6', icon: '👛' },
-    metamask: { color: '#FF6B35', icon: '🦊' },
-    coinbase: { color: '#1652F0', icon: '🔵' },
-    brave:    { color: '#FB542B', icon: '🦁' },
-    injected: { color: '#888780', icon: '💳' },
+  const WALLET_META: Record<string, { color: string; label: string; icon: string }> = {
+    rabby:    { color: '#7B5EA7', label: 'Rabby',          icon: '🐰' },
+    metamask: { color: '#E8831D', label: 'MetaMask',       icon: '🦊' },
+    coinbase: { color: '#1652F0', label: 'Coinbase Wallet',icon: '🔵' },
+    brave:    { color: '#FB542B', label: 'Brave Wallet',   icon: '🦁' },
+    injected: { color: '#6B7280', label: 'Injected Wallet',icon: '👛' },
   }
+
+  const detectedIds = new Set(wallets.map(w => w.id))
+  const detected = wallets
+  const recommended = ['metamask', 'coinbase', 'brave'].filter(id => !detectedIds.has(id))
 
   const handleConnect = (wallet: WalletOption) => {
     void (async () => {
@@ -58,8 +62,48 @@ function WalletModal({ onClose }: { onClose: () => void }) {
     })()
   }
 
-  const ALL_WALLETS = ['rabby', 'metamask', 'coinbase', 'brave']
-  const detectedIds = new Set(wallets.map(w => w.id))
+  const WalletRow = ({ wallet, sublabel }: { wallet: WalletOption; sublabel?: string }) => {
+    const meta = WALLET_META[wallet.id] ?? WALLET_META.injected
+    const isConnecting = connecting === wallet.id
+    return (
+      <button
+        disabled={walletConnectPending}
+        onClick={() => handleConnect(wallet)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 12,
+          width: '100%', padding: '9px 12px',
+          background: 'transparent', border: 'none',
+          borderRadius: 10, cursor: walletConnectPending ? 'wait' : 'pointer',
+          transition: 'background 0.1s', textAlign: 'left',
+        }}
+        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)' }}
+        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
+      >
+        <div style={{
+          width: 36, height: 36, borderRadius: 8,
+          background: meta.color,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 18, flexShrink: 0,
+        }}>
+          {meta.icon}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontSize: 14, fontWeight: 500, margin: 0, color: '#fff' }}>{meta.label}</p>
+          {sublabel && <p style={{ fontSize: 11, color: '#6b7280', margin: 0 }}>{sublabel}</p>}
+        </div>
+        {isConnecting
+          ? <div style={{
+              width: 14, height: 14, border: '2px solid #333',
+              borderTopColor: meta.color, borderRadius: '50%',
+              animation: 'spin 0.7s linear infinite', flexShrink: 0,
+            }} />
+          : <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0 }}>
+              <path d="M6 3l5 5-5 5" stroke="#4b5563" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+        }
+      </button>
+    )
+  }
 
   return (
     <motion.div
@@ -68,117 +112,165 @@ function WalletModal({ onClose }: { onClose: () => void }) {
       style={{
         position: 'fixed', inset: 0, zIndex: 500,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)',
+        background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)',
       }}
     >
       <motion.div
-        initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 16 }}
+        initial={{ scale: 0.96, y: 12 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.96, y: 12 }}
         transition={{ duration: 0.15 }}
         onClick={e => e.stopPropagation()}
         style={{
-          width: 'min(380px, 92vw)',
-          background: '#ffffff',
-          borderRadius: 16,
+          width: 'min(740px, 94vw)',
+          background: '#111111',
+          borderRadius: 20,
+          border: '1px solid #1f1f1f',
           overflow: 'hidden',
-          boxShadow: '0 24px 64px rgba(0,0,0,0.4)',
+          display: 'flex',
+          boxShadow: '0 32px 80px rgba(0,0,0,0.6)',
         }}
       >
-        {/* Header */}
-        <div style={{ padding: '20px 20px 14px' }}>
-          <p style={{ fontSize: 11, letterSpacing: '0.1em', color: '#9ca3af', margin: '0 0 4px', textTransform: 'uppercase' }}>
-            Echo Chamber
-          </p>
-          <h2 style={{ fontSize: 17, fontWeight: 600, margin: '0 0 4px', color: '#111' }}>
-            Connect wallet
-          </h2>
-          <p style={{ fontSize: 13, color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
-            Sign a message to authenticate. No gas required.
-          </p>
-        </div>
-
-        {/* Wallet list */}
-        <div style={{ padding: '0 10px 10px', display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {ALL_WALLETS.map(id => {
-            const detected = detectedIds.has(id)
-            const wallet = wallets.find(w => w.id === id)
-            const meta = WALLET_META[id]
-            const isConnecting = connecting === id
-            const names: Record<string, string> = {
-              rabby: 'Rabby', metamask: 'MetaMask', coinbase: 'Coinbase Wallet', brave: 'Brave Wallet'
-            }
-            return (
-              <button
-                key={id}
-                disabled={!detected || walletConnectPending}
-                onClick={() => wallet && handleConnect(wallet)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 12,
-                  width: '100%', padding: '11px 10px',
-                  background: 'transparent',
-                  border: '1px solid #f3f4f6',
-                  borderRadius: 10,
-                  cursor: detected && !walletConnectPending ? 'pointer' : 'default',
-                  opacity: detected ? 1 : 0.45,
-                  transition: 'background 0.1s',
-                  textAlign: 'left',
-                }}
-                onMouseEnter={e => { if (detected) (e.currentTarget as HTMLButtonElement).style.background = '#f9fafb' }}
-                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent' }}
-              >
-                <div style={{
-                  width: 36, height: 36, borderRadius: 8,
-                  background: meta.color,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  flexShrink: 0, fontSize: 18,
-                }}>
-                  {meta.icon}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: 14, fontWeight: 500, margin: 0, color: '#111' }}>{names[id]}</p>
-                  <p style={{ fontSize: 12, color: '#9ca3af', margin: 0 }}>
-                    {isConnecting ? 'Connecting…' : detected ? 'Detected' : 'Not installed'}
-                  </p>
-                </div>
-                {detected && !isConnecting && (
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                    <path d="M6 3l5 5-5 5" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                )}
-                {isConnecting && (
-                  <div style={{
-                    width: 14, height: 14, border: '2px solid #e5e7eb',
-                    borderTopColor: meta.color, borderRadius: '50%',
-                    animation: 'spin 0.7s linear infinite',
-                  }} />
-                )}
-              </button>
-            )
-          })}
-        </div>
-
-        {/* Footer */}
+        {/* Left panel — wallet list */}
         <div style={{
-          padding: '12px 20px 18px',
-          borderTop: '1px solid #f3f4f6',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          width: 260, flexShrink: 0,
+          borderRight: '1px solid #1f1f1f',
+          display: 'flex', flexDirection: 'column',
         }}>
-          <p style={{ fontSize: 12, color: '#9ca3af', margin: 0 }}>
-            New to wallets?{' '}
-            <a href="https://rabby.io" target="_blank" rel="noreferrer" style={{ color: '#6366f1', textDecoration: 'none' }}>
-              Get Rabby
+          {/* Header */}
+          <div style={{ padding: '20px 16px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <h2 style={{ fontSize: 16, fontWeight: 600, margin: 0, color: '#fff' }}>Connect a Wallet</h2>
+            <button
+              onClick={onClose}
+              style={{
+                width: 28, height: 28, borderRadius: 8,
+                background: '#1a1a1a', border: '1px solid #2a2a2a',
+                color: '#6b7280', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 16, lineHeight: 1,
+              }}
+            >×</button>
+          </div>
+
+          <div style={{ flex: 1, overflowY: 'auto', padding: '0 8px' }}>
+            {/* Installed */}
+            {detected.length > 0 && (
+              <>
+                <p style={{ fontSize: 11, color: '#4b5563', letterSpacing: '0.05em', padding: '4px 8px 6px', margin: 0, textTransform: 'uppercase' }}>
+                  Installed
+                </p>
+                {detected.map((w, i) => (
+                  <WalletRow key={w.id} wallet={w} sublabel={i === 0 ? 'Recent' : undefined} />
+                ))}
+              </>
+            )}
+
+            {/* Recommended */}
+            {recommended.length > 0 && (
+              <>
+                <p style={{ fontSize: 11, color: '#4b5563', letterSpacing: '0.05em', padding: '12px 8px 6px', margin: 0, textTransform: 'uppercase' }}>
+                  Recommended
+                </p>
+                {recommended.map(id => {
+                  const meta = WALLET_META[id]
+                  return (
+                    <div
+                      key={id}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 12,
+                        padding: '9px 12px', borderRadius: 10, opacity: 0.45,
+                      }}
+                    >
+                      <div style={{
+                        width: 36, height: 36, borderRadius: 8,
+                        background: meta.color,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 18, flexShrink: 0,
+                      }}>
+                        {meta.icon}
+                      </div>
+                      <div>
+                        <p style={{ fontSize: 14, fontWeight: 500, margin: 0, color: '#fff' }}>{meta.label}</p>
+                        <p style={{ fontSize: 11, color: '#6b7280', margin: 0 }}>Not installed</p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Right panel — info */}
+        <div style={{
+          flex: 1, display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          padding: '40px 32px', gap: 28,
+        }}>
+          <h3 style={{ fontSize: 18, fontWeight: 600, color: '#fff', margin: 0 }}>
+            What is a Wallet?
+          </h3>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20, width: '100%' }}>
+            <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+              <div style={{
+                width: 52, height: 52, borderRadius: 12, flexShrink: 0,
+                background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24,
+              }}>🏦</div>
+              <div>
+                <p style={{ fontSize: 14, fontWeight: 500, color: '#fff', margin: '0 0 4px' }}>A Home for your Digital Assets</p>
+                <p style={{ fontSize: 13, color: '#6b7280', margin: 0, lineHeight: 1.6 }}>
+                  Wallets store and manage your on-chain identity, tokens, and assets across any app.
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+              <div style={{
+                width: 52, height: 52, borderRadius: 12, flexShrink: 0,
+                background: 'linear-gradient(135deg, #06b6d4, #3b82f6)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24,
+              }}>🔑</div>
+              <div>
+                <p style={{ fontSize: 14, fontWeight: 500, color: '#fff', margin: '0 0 4px' }}>A New Way to Log In</p>
+                <p style={{ fontSize: 13, color: '#6b7280', margin: 0, lineHeight: 1.6 }}>
+                  No passwords. Sign a message with your wallet to prove ownership and open your session.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 10, width: '100%' }}>
+            
+              href="https://rabby.io"
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                flex: 1, padding: '11px 0', textAlign: 'center',
+                background: '#fff', color: '#111',
+                borderRadius: 10, fontSize: 13, fontWeight: 600,
+                textDecoration: 'none', cursor: 'pointer',
+              }}
+            >
+              Get a Wallet
             </a>
-          </p>
-          <button
-            onClick={onClose}
-            style={{
-              fontSize: 13, color: '#6b7280', background: 'none',
-              border: 'none', cursor: 'pointer', padding: 0,
-            }}
-          >
-            Cancel
-          </button>
+            
+              href="https://learn.rabby.io"
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                flex: 1, padding: '11px 0', textAlign: 'center',
+                background: '#1a1a1a', color: '#fff',
+                border: '1px solid #2a2a2a',
+                borderRadius: 10, fontSize: 13, fontWeight: 600,
+                textDecoration: 'none', cursor: 'pointer',
+              }}
+            >
+              Learn More
+            </a>
+          </div>
         </div>
       </motion.div>
+
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </motion.div>
   )
