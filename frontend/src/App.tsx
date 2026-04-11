@@ -51,10 +51,11 @@ function WalletModal({ onClose }: { onClose: () => void }) {
           await new Promise(r => setTimeout(r, 100))
         }
       } catch (e) {
-        setGameAuthToken(null)
-        const msg = e instanceof Error ? e.message : 'Wallet connection failed.'
-        useGameStore.setState({ networkError: msg })
-      } finally {
+  console.error('RAW WALLET ERROR:', e)
+  setGameAuthToken(null)
+  const msg = e instanceof Error ? e.message : 'Wallet connection failed.'
+  useGameStore.setState({ networkError: msg })
+} finally {
         setConnecting(null)
         useGameStore.setState({ walletConnectPending: false })
       }
