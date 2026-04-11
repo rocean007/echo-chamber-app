@@ -4,7 +4,7 @@ import { ConsentRoot, useConsentShell } from './consent'
 import { useGameStore } from './store/gameStore'
 import GameBoardFallback from './components/GameBoardFallback'
 import PhaseRouteFallback from './components/PhaseRouteFallback'
-import { getAvailableWallets, connectWalletAndSignIn, type WalletOption } from '../services/wallet'
+import { getAvailableWallets, connectWalletAndSignIn, type WalletOption } from './services/wallet'
 import { setGameAuthToken, sendGameMessage, whenSocketOpen } from './services/gameSocket'
 
 const GameBoard = lazy(() => import('./components/GameBoard'))
